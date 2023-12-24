@@ -6,9 +6,8 @@ from django.views import View
 from django.shortcuts import get_object_or_404
 import json,requests
 from django.http import JsonResponse
-from .models import client
-import secrets
-from django.conf import settings
+from .models import client,File
+from .extract import extract_content
 
 
 
@@ -24,8 +23,28 @@ def client_webhook(request):
         user_id = message.get('from', {}).get('id')
         
         if client.objects.filter(client_id=user_id).exists():
-            print("user present")
-        
+            if 'document' in message:
+                try:
+                    #file_id = message['document']['file_id']
+                    file_info = extract_content(message['caption'])
+                    file_info['file_id'] = message['document']['file_id']
+                    file_info['client'] = client.objects.get(client_id=user_id)
+                    print(file_info)
+                    try:
+                        new_file = File(**file_info)
+                        new_file.save()
+                        send_response(user_id, message['message_id'], "file added succesfully")
+                    except:
+                        send_response(user_id, message['message_id'], "could not save file details because of the data problems")
+                except:
+                    send_response(user_id, message['message_id'], "Format is wrong")
+
+
+            elif message['text'] == '/upload_file':
+                send_message_with_force_reply(user_id, "Please send the file in the appropriate format")
+            else:
+                
+                send_response(user_id,message['message_id'],"Sorry i can't respond to that")
 
         else:
             if 'reply_to_message' in update['message']:
