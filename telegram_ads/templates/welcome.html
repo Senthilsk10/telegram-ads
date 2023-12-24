@@ -7,7 +7,9 @@
     <h1>
         welcome user
     </h1>
-
+    {% if chatid == None %}
     <h3>api key gnerated : {{apikey}}</h3>
-
+    {% else %}
+    <h3>you have already linked your chat</h3>
+    {% endif %}
 {% endblock %}
