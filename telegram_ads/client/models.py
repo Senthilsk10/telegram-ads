@@ -23,4 +23,6 @@ class File(models.Model):
     language = models.CharField(max_length=45,blank=True, null=True)
     quality = models.CharField(max_length=45,blank=True, null=True)
     file_id = models.CharField(max_length=200,blank=True, null=True)
+    file_size = models.DecimalField(max_digits=10,decimal_places=4,blank=True, null=True)
+    year = models.IntegerField(blank=True, null=True)
     client = models.ForeignKey(client,on_delete=models.CASCADE)

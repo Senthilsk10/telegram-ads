@@ -8,7 +8,7 @@ import json,requests
 from django.http import JsonResponse
 from .models import client,File
 from .extract import extract_content
-
+from decimal import Decimal
 
 
 TOKEN = '6697337063:AAE5paU-w7wkdzmrbZCnVkTZpNu9wrlqTRY'
@@ -19,7 +19,6 @@ def client_webhook(request):
         update = json.loads(request.body)
         print(update)
         message = update.get('message', {})
-        callback_query = update.get('callback_query', {})
         user_id = message.get('from', {}).get('id')
         
         if client.objects.filter(client_id=user_id).exists():
@@ -28,12 +27,15 @@ def client_webhook(request):
                     #file_id = message['document']['file_id']
                     file_info = extract_content(message['caption'])
                     file_info['file_id'] = message['document']['file_id']
+                    file_info['file_size'] = kb_to_gb(message['document']['file_size'])
                     file_info['client'] = client.objects.get(client_id=user_id)
                     print(file_info)
                     try:
+                        print(file_info)
                         new_file = File(**file_info)
                         new_file.save()
                         send_response(user_id, message['message_id'], "file added succesfully")
+                    
                     except:
                         send_response(user_id, message['message_id'], "could not save file details because of the data problems")
                 except:
@@ -135,4 +137,7 @@ def send_message_with_force_reply(chat_id, message_text):
         return "done"
 
 
+def kb_to_gb(kb_size):
+    gb_size = Decimal(kb_size)/Decimal(1024**3)
+    return round(gb_size, 6)
 

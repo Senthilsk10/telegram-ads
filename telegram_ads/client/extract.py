@@ -9,6 +9,7 @@ def extract_content(file_info):
     episode_pattern = re.compile(r'episode: (.+)')
     language_pattern = re.compile(r'language: (.+)')
     quality_pattern = re.compile(r'quality: (.+)')
+    year_pattern = re.compile(f'year: (.+)')
 
     # Initialize dictionary to store extracted values
     extracted_content = {
@@ -18,14 +19,15 @@ def extract_content(file_info):
         'season': None,
         'episode': None,
         'language': None,
-        'quality': None
+        'quality': None,
+        'year':None,
     }
 
     # Split lines based on newline character
     lines = file_info.split('\n')
 
     # Check if the template has the expected structure
-    if len(lines) != 7:
+    if len(lines) != 8:
         raise ValueError("Error: Invalid template structure. Please check the template.")
 
     # Extract values using regular expressions
@@ -60,5 +62,9 @@ def extract_content(file_info):
     match = quality_pattern.search(lines[6])
     if match:
         extracted_content['quality'] = match.group(1)
+
+    match = year_pattern.search(lines[7])
+    if match:
+        extracted_content['year'] = match.group(1)
 
     return extracted_content
