@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 import json,requests
 from django.http import JsonResponse
 from .models import client,File
-from .extract import extract_content
+from users.text_extraction import parse_file_details
 from decimal import Decimal
 
 
@@ -25,7 +25,8 @@ def client_webhook(request):
             if 'document' in message:
                 try:
                     #file_id = message['document']['file_id']
-                    file_info = extract_content(message['caption'])
+                    file_info = parse_file_details(message['caption'])
+                    file_info['series_movie'] = file_info.pop('type')
                     file_info['file_id'] = message['document']['file_id']
                     file_info['file_size'] = kb_to_gb(message['document']['file_size'])
                     file_info['client'] = client.objects.get(client_id=user_id)

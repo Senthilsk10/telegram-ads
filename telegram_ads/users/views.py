@@ -4,7 +4,8 @@ import json
 from django.http import JsonResponse
 import requests
 from .text_extraction import parse_file_details
-
+from client.models import File
+from django.db.models import Q
 
 TOKEN = '6785780878:AAEGtVwuH-ITvBGkd2SzPz7KGsUzsu_loVU'
 API_URL = f'https://api.telegram.org/bot{TOKEN}/'
@@ -17,8 +18,34 @@ def user_webhook(request):
     message = update.get('message', {})
     chat = message.get('chat', {})
     print(update)
-    movie_text = parse_file_details(message['text'])
-    send_response(chat['id'],message['message_id'],f'you asked for the movie :{movie_text}')
+    
+    if callback_query:
+        file_id = callback_query['data']
+        chat_id = callback_query['from']['id']
+        group_id = callback_query
+
+
+    elif message:
+
+        try:
+            data_dict = parse_file_details(message['text'])
+            query = Q()
+
+            if 'file_name' in data_dict:
+                query &= Q(file_name__icontains=data_dict['file_name'])
+
+            if 'year' in data_dict:
+                query &= Q(year=int(data_dict['year']))
+
+            if 'quality' in data_dict:
+                query &= Q(quality=data_dict['quality'])
+
+            result = File.objects.filter(query)
+            send_response(chat['id'],message['message_id'],f'you asked for the movies:{result}')
+            select_file(chat['id'],result)
+        except Exception as e:
+            print(e)
+            send_response(chat['id'],message['message_id'],f'you asked for the movie :{movie_text}')
     return JsonResponse("success", safe=False, status=200)
 
 
@@ -69,15 +96,15 @@ def send_message_with_force_reply(chat_id, message_text):
 def select_file(chat_id, options):
     keyboard = {
         'inline_keyboard': [
-            [{'text': text, 'callback_data': text}] for text in options
+            [{'text': f'{item.file_size} MB  {item.file_name} {item.year if item.year else " "} { item.season,item.episode if item.season and item.episode else item.language,item.quality}', 'callback_data':item.id}] for item in options
         ]
     }
 
     reply_markup = json.dumps(keyboard)
 
     message = 'Here are your links:'
-    send_message_url = TELEGRAM_API_URL + f'sendMessage?chat_id={chat_id}&text={message}&reply_markup={reply_markup}'
-
+    send_message_url = API_URL + f'sendMessage?chat_id={chat_id}&text={message}&reply_markup={reply_markup}'
+    
     response = requests.get(send_message_url)
 
     if response.status_code == 200:

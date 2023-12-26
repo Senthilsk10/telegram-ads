@@ -18,7 +18,7 @@ def parse_file_details(sentence):
         return details
 
     # Extract the name using the type_index
-    details['name'] = ' '.join(words[:type_index]).strip()
+    details['file_name'] = ' '.join(words[:type_index]).strip()
 
     # Iterate through the words after the type_index to extract information
     for i in range(type_index + 1, len(words)):
