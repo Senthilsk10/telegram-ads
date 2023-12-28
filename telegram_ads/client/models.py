@@ -26,7 +26,7 @@ class File(models.Model):
     file_size = models.DecimalField(max_digits=10,decimal_places=4,blank=True, null=True)
     year = models.IntegerField(blank=True, null=True)
     client = models.ForeignKey(client,on_delete=models.CASCADE)
-    Forwarded_count = models.IntegerField(blank=True, null=True)#new for analytics part
+    Forwarded_count = models.IntegerField(blank=True, null=True,default=0)#new for analytics part
 
 class verified_groups(models.Model):#for client group relation for identifing groups of specifc clients
     owner = models.ForeignKey(client, related_name='group_owner', on_delete=models.CASCADE)

@@ -73,11 +73,14 @@ def client_webhook(request):
             elif message['text'] == "/connect_portal":
                 print(message['text'])
                 send_message_with_force_reply(message['chat']['id'], "enter your secret key from the portal")
-            else:
+            elif message['text'] == '/help_for_client':
                 send_response(user_id, message.get('id'), "generate key from the website and access the key here and use it to verify your chat ID")
-            
+            elif message['text'] == 'help_for_users':
+                send_response(user_id, message.get('id'), "welcome to the bot you can now recieve files from us")
+            else:
+                send_response(user_id, message.get('id'), "if you're a client verify your identity by clicking /connect_portal  and normal users can recieve files without connecting")
             return JsonResponse("success", safe=False, status=200)
-        
+
         
         return JsonResponse("success",safe=False,status = 200)
     
