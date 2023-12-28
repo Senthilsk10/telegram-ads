@@ -4,8 +4,9 @@ import json
 from django.http import JsonResponse
 import requests
 from .text_extraction import parse_file_details
-from client.models import File
+from client.models import File,client,verified_groups
 from django.db.models import Q
+from web.models import Link_to_file
 
 TOKEN = '6785780878:AAEGtVwuH-ITvBGkd2SzPz7KGsUzsu_loVU'
 API_URL = f'https://api.telegram.org/bot{TOKEN}/'
@@ -21,8 +22,13 @@ def user_webhook(request):
     
     if callback_query:
         file_id = callback_query['data']
-        chat_id = callback_query['from']['id']
-        group_id = callback_query
+        user_id = callback_query['from']['id']
+        group_id = callback_query['message']['chat']['id']
+        file = File.objects.get(id=file_id)
+        group = verified_groups.objects.get(group_id=group_id)
+        link = Link_to_file.objects.create(file = file,group_id = group,user_chat_id = user_id)
+        url = link.get_link()
+        send_response(group_id,callback_query['message']['message_id'],f"here is your link - {url}")
 
 
     elif message:
@@ -39,6 +45,15 @@ def user_webhook(request):
 
             if 'quality' in data_dict:
                 query &= Q(quality=data_dict['quality'])
+            
+            if 'language' in data_dict:
+                query &= Q(language=data_dict['language'])
+            
+            if 'season' in data_dict:
+                query &= Q(season=data_dict['season'])
+            
+            if 'episode' in data_dict:
+                query &= Q(episode=data_dict['episode'])
 
             result = File.objects.filter(query)
             send_response(chat['id'],message['message_id'],f'you asked for the movies:{result}')
@@ -96,7 +111,7 @@ def send_message_with_force_reply(chat_id, message_text):
 def select_file(chat_id, options):
     keyboard = {
         'inline_keyboard': [
-            [{'text': f'{item.file_size} MB  {item.file_name} {item.year if item.year else " "} { item.season,item.episode if item.season and item.episode else item.language,item.quality}', 'callback_data':item.id}] for item in options
+            [{'text': f'{item.file_size} GB  {item.file_name} {item.year if item.year else " "} { item.season,item.episode if item.season and item.episode else item.language,item.quality}', 'callback_data':item.id}] for item in options
         ]
     }
 

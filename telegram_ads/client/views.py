@@ -58,6 +58,7 @@ def client_webhook(request):
                     if (client.objects.filter(client_key = user_reply)).exists():
                         user = client.objects.get(client_key = user_reply)
                         user.client_id = message['from']['id']
+                        user.client_name = message['from']['username']
                         user.save()
                         send_response(message['chat']['id'],message['message_id'],"your account was connected you can now start sending messages")
                     else:
