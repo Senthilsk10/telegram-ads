@@ -24,7 +24,11 @@ def user_webhook(request):
         file_id = callback_query['data']
         user_id = callback_query['from']['id']
         group_id = callback_query['message']['chat']['id']
-        file = File.objects.get(id=file_id)
+        try:
+            file = File.objects.get(id=file_id)
+        except:
+            send_response(group_id,callback_query['message']['message_id'],'file has been deleted')
+            return JsonResponse('success',safe=False,status=200)
         group = verified_groups.objects.get(group_id=group_id)
         link = Link_to_file.objects.create(file = file,group_id = group,user_chat_id = user_id)
         url = link.get_link()
@@ -35,6 +39,9 @@ def user_webhook(request):
 
         try:
             data_dict = parse_file_details(message['text'])
+            if 'movie' or 'series' not in data_dict:
+                send_response(chat['id'],message['message_id'],f'No results Found - Try to send in correct format')
+                return JsonResponse('success',safe=False,status=200)
             query = Q()
 
             if 'file_name' in data_dict:
@@ -54,13 +61,17 @@ def user_webhook(request):
             
             if 'episode' in data_dict:
                 query &= Q(episode=data_dict['episode'])
-
-            result = File.objects.filter(query)
+            try:
+                result = File.objects.filter(query)
+            except:
+                send_response(chat['id'],message['message_id'],'no files found for your search text')
+                return JsonResponse('success',safe=False,status=200)
             send_response(chat['id'],message['message_id'],f'you asked for the movies:{result}')
             select_file(chat['id'],result)
         except Exception as e:
             print(e)
             send_response(chat['id'],message['message_id'],f'you asked for the movie :{movie_text}')
+    
     return JsonResponse("success", safe=False, status=200)
 
 

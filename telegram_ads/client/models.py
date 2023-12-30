@@ -28,6 +28,26 @@ class File(models.Model):
     client = models.ForeignKey(client,on_delete=models.CASCADE)
     Forwarded_count = models.IntegerField(blank=True, null=True,default=0)#new for analytics part
 
+    def description(self):
+        details = []
+
+        # Check and append non-empty fields to the details list
+        if self.file_name:
+            details.append(f"Name: {self.file_name}")
+
+        if self.year is not None:
+            details.append(f"Year: {self.year}")
+
+        if self.language:
+            details.append(f"Language: {self.language}")
+
+        if self.file_size is not None:
+            details.append(f"Size: {self.file_size} MB")
+
+        # Join the details into a string with line breaks
+        return '\n'.join(details)
+
+
 class verified_groups(models.Model):#for client group relation for identifing groups of specifc clients
     owner = models.ForeignKey(client, related_name='group_owner', on_delete=models.CASCADE)
     group_id = models.CharField(max_length=45,blank=True, null=False)

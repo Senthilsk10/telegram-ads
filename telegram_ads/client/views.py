@@ -16,12 +16,16 @@ API_URL = f'https://api.telegram.org/bot{TOKEN}/'
 @csrf_exempt
 def client_webhook(request):
     try:
+        
         update = json.loads(request.body)
-        print(update)
+        #print(update)
         message = update.get('message', {})
         user_id = message.get('from', {}).get('id')
-        
-        if client.objects.filter(client_id=user_id).exists():
+        chat_type = message['chat']['type']
+        if chat_type == 'group':
+            send_response(message['chat']['id'],message['message_id'],'please dont message i am weak lmao')
+            return JsonResponse('success',safe=False,status=200)
+        elif client.objects.filter(client_id=user_id).exists():
             if 'document' in message:
                 try:
                     #file_id = message['document']['file_id']
@@ -30,12 +34,13 @@ def client_webhook(request):
                     file_info['file_id'] = message['document']['file_id']
                     file_info['file_size'] = kb_to_gb(message['document']['file_size'])
                     file_info['client'] = client.objects.get(client_id=user_id)
-                    print(file_info)
+                    #print(file_info)
                     try:
-                        print(file_info)
+                        #print(file_info)
                         new_file = File(**file_info)
                         new_file.save()
                         send_response(user_id, message['message_id'], "file added succesfully")
+                        send_file_by_file_id(new_file.file_id,new_file.id)
                     
                     except:
                         send_response(user_id, message['message_id'], "could not save file details because of the data problems")
@@ -73,17 +78,15 @@ def client_webhook(request):
             elif message['text'] == "/connect_portal":
                 print(message['text'])
                 send_message_with_force_reply(message['chat']['id'], "enter your secret key from the portal")
-            elif message['text'] == '/help_for_client':
+            elif message['text'] == '/help':
                 send_response(user_id, message.get('id'), "generate key from the website and access the key here and use it to verify your chat ID")
-            elif message['text'] == 'help_for_users':
-                send_response(user_id, message.get('id'), "welcome to the bot you can now recieve files from us")
             else:
-                send_response(user_id, message.get('id'), "if you're a client verify your identity by clicking /connect_portal  and normal users can recieve files without connecting")
+                send_response(user_id, message.get('id'), "sorry i cant respond to that")
             return JsonResponse("success", safe=False, status=200)
 
         
+        
         return JsonResponse("success",safe=False,status = 200)
-    
     
     except Exception as e:
         print(e)
@@ -146,3 +149,30 @@ def kb_to_gb(kb_size):
     gb_size = Decimal(kb_size)/Decimal(1024**3)
     return round(gb_size, 6)
 
+
+def send_file_by_file_id(file_id,id):
+    chat_id = -4016116094
+    send_document_url = f'{API_URL}sendDocument'
+    #print(chat_id,file_id)
+    send_document_params = {
+        'chat_id': chat_id,
+        'caption':id,
+        'document': file_id  # Use the file_id directly
+    }
+
+    send_document_response = requests.post(send_document_url, params=send_document_params)
+    print(send_document_response.json())
+    update = send_document_response.json()
+    message = update['result']
+    if 'document' in message:
+        file_model_id = message.get('caption','')
+        file_id = message['document']['file_id']
+        file = File.objects.get(id=file_model_id)
+        print(file.file_id)
+        file.file_id = file_id
+        file.save()
+        print(file.file_id)
+    if send_document_response.json().get('ok', False):
+        print('File sent successfully!')
+    else:
+        print('Failed to send file.')
