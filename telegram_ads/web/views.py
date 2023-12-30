@@ -6,6 +6,8 @@ from client.models import File,verified_groups
 from django.urls import reverse_lazy
 import requests,json
 
+
+#token for file_reciever bot - this botsfunction is to be silent in the group where the tutorial bot is and get the file id for the file so we can send the file to another person using this bot and not with tutorial bot 
 TOKEN ='6680854062:AAH5p2mhpEqpFLwC64s_Vy1qjwPgWRrYdK8'
 API_URL = f'https://api.telegram.org/bot{TOKEN}/'
 

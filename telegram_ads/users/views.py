@@ -8,6 +8,8 @@ from client.models import File,client,verified_groups
 from django.db.models import Q
 from web.models import Link_to_file
 
+
+#token for file_Filter_sender - this bot will be used for sending initial filtered files and link for user , better send the link too to the user chat so we can try to reduce the messages in the group 
 TOKEN = '6785780878:AAEGtVwuH-ITvBGkd2SzPz7KGsUzsu_loVU'
 API_URL = f'https://api.telegram.org/bot{TOKEN}/'
 
@@ -19,7 +21,9 @@ def user_webhook(request):
     message = update.get('message', {})
     chat = message.get('chat', {})
     print(update)
-    
+    if chat['type'] == 'group':
+        send_response(chat['id'],message['message_id'],'this is a group which is not registered')
+        return JsonResponse('ok',safe=False,status=200)
     if callback_query:
         file_id = callback_query['data']
         user_id = callback_query['from']['id']

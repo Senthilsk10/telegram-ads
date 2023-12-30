@@ -10,7 +10,7 @@ from .models import client,File
 from users.text_extraction import parse_file_details
 from decimal import Decimal
 
-
+#token fot tutorial bot - this bot's function is to recieve files from client and send it to the common group where the file sender is:
 TOKEN = '6697337063:AAE5paU-w7wkdzmrbZCnVkTZpNu9wrlqTRY'
 API_URL = f'https://api.telegram.org/bot{TOKEN}/'
 @csrf_exempt
