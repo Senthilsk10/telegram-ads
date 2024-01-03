@@ -21,63 +21,84 @@ def user_webhook(request):
     message = update.get('message', {})
     chat = message.get('chat', {})
     print(update)
-    if chat['type'] == 'group':
-        send_response(chat['id'],message['message_id'],'this is a group which is not registered')
-        return JsonResponse('ok',safe=False,status=200)
-    if callback_query:
-        file_id = callback_query['data']
-        user_id = callback_query['from']['id']
-        group_id = callback_query['message']['chat']['id']
+    try:
         try:
-            file = File.objects.get(id=file_id)
+            group = verified_groups.objects.get(group_id=chat['id'])
         except:
-            send_response(group_id,callback_query['message']['message_id'],'file has been deleted')
-            return JsonResponse('success',safe=False,status=200)
-        group = verified_groups.objects.get(group_id=group_id)
-        link = Link_to_file.objects.create(file = file,group_id = group,user_chat_id = user_id)
-        url = link.get_link()
-        send_response(group_id,callback_query['message']['message_id'],f"here is your link - {url}")
-
-
-    elif message:
-
-        try:
-            data_dict = parse_file_details(message['text'])
-            if 'movie' or 'series' not in data_dict:
-                send_response(chat['id'],message['message_id'],f'No results Found - Try to send in correct format')
-                return JsonResponse('success',safe=False,status=200)
-            query = Q()
-
-            if 'file_name' in data_dict:
-                query &= Q(file_name__icontains=data_dict['file_name'])
-
-            if 'year' in data_dict:
-                query &= Q(year=int(data_dict['year']))
-
-            if 'quality' in data_dict:
-                query &= Q(quality=data_dict['quality'])
+            group_id = callback_query['message']['chat']['id']
+        if callback_query:
+            file_id = callback_query['data']
+            user_id = callback_query['from']['id']
             
-            if 'language' in data_dict:
-                query &= Q(language=data_dict['language'])
-            
-            if 'season' in data_dict:
-                query &= Q(season=data_dict['season'])
-            
-            if 'episode' in data_dict:
-                query &= Q(episode=data_dict['episode'])
             try:
-                result = File.objects.filter(query)
+                file = File.objects.get(id=file_id)
             except:
-                send_response(chat['id'],message['message_id'],'no files found for your search text')
+                send_response(group_id,callback_query['message']['message_id'],'file has been deleted')
                 return JsonResponse('success',safe=False,status=200)
-            send_response(chat['id'],message['message_id'],f'you asked for the movies:{result}')
-            select_file(chat['id'],result)
-        except Exception as e:
-            print(e)
-            send_response(chat['id'],message['message_id'],f'you asked for the movie :{movie_text}')
-    
-    return JsonResponse("success", safe=False, status=200)
+            group = verified_groups.objects.get(group_id=group_id)
+            link = Link_to_file.objects.create(file = file,group_id = group,user_chat_id = user_id)
+            url = link.get_link()
+            send_response(group_id,callback_query['message']['message_id'],f"here is your link - {url}")
 
+
+        elif message:
+            try:
+                data_dict = parse_file_details(message['text'])
+                '''if 'movie' or 'series' not in data_dict:
+                    send_response(chat['id'],message['message_id'],f'No results Found - Try to send in correct format')
+                    return JsonResponse('success',safe=False,status=200)'''
+                query = Q()
+
+                if 'file_name' in data_dict:
+                    query &= Q(file_name__icontains=data_dict['file_name'])
+
+                if 'year' in data_dict:
+                    query &= Q(year=int(data_dict['year']))
+
+                if 'quality' in data_dict:
+                    query &= Q(quality=data_dict['quality'])
+                
+                if 'language' in data_dict:
+                    query &= Q(language=data_dict['language'])
+                
+                if 'season' in data_dict:
+                    query &= Q(season=data_dict['season'])
+                
+                if 'episode' in data_dict:
+                    query &= Q(episode=data_dict['episode'])
+                try:
+                    result = File.objects.filter(query)
+                except:
+                    send_response(chat['id'],message['message_id'],'no files found for your search text')
+                    return JsonResponse('success',safe=False,status=200)
+                send_response(chat['id'],message['message_id'],f'you asked for the movies:{result}')
+                select_file(chat['id'],result)
+            except Exception as e:
+                print(e)
+                send_response(chat['id'],message['message_id'],f'you asked for the movie :{movie_text}')
+    except:
+        if 'reply_to_message' in update['message']:
+            original_message_text = update['message']['reply_to_message']['text']
+            user_reply = update['message']['text']
+            expected_prompt = 'Enter your secret code from web portal'
+            if original_message_text == expected_prompt:
+                if (client.objects.filter(client_key = user_reply)).exists():
+                    user = client.objects.get(client_key = user_reply)
+                    group = verified_groups.objects.create(owner=user,group_id=chat['id'])
+
+                    send_response(message['chat']['id'],message['message_id'],"your account was connected you can now start sending messages")
+                else:
+                    send_response(message['from']['id'],message['id'],"could not find your account")
+                #print(f"The user's reply '{user_reply}' is in response to the prompt '{expected_prompt}'")
+                # Perform additional actions based on the verification
+            else:
+                print(f"The user's reply is not in response to the expected prompt")
+            return JsonResponse("success", safe=False, status=200)
+        elif message['text'] == '/connect_group':
+            send_message_with_force_reply(chat['id'],'Enter your secret code from web portal')
+        else:
+            send_response(chat['id'],message['message_id'],'please connect the group with your account by clicking /connect_group')
+    return JsonResponse("success", safe=False, status=200)
 
 
 
@@ -142,3 +163,34 @@ def select_file(chat_id, options):
     else:
         print("Error sending message:", response.text)
     
+
+
+def send_message_with_force_reply(chat_id, message_text):
+   
+
+    # Set up the parameters for the sendMessage API method
+    params = {
+        'chat_id': chat_id,
+        'text': message_text,
+        'reply_markup': {'force_reply': True}
+    }
+
+    # Make the request to the Telegram Bot API
+    response = requests.post(API_URL+"sendMessage", json=params)
+
+    # Process the JSON response
+    if response.ok:
+        result_json = response.json()
+        if result_json['ok']:
+            # Message sent successfully
+            message_info = result_json['result']
+            print("user is replying")
+            #print(message_info['text'])
+            #print(f"Message ID: {message_info['message_id']}")
+        else:
+            # Handle errors if needed
+            print(f"Error: {result_json['description']}")
+    else:
+        # Handle HTTP request errors if needed
+        print(f"HTTP Error: {response.status_code}")
+        return "done"
